@@ -317,6 +317,8 @@ import pandas as _pd_local
 
 def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
                      panel_id: str) -> str:
+
+    
     """
     Fast HTML renderer for pivot tables.
     ~10x faster than _build_pivot_html for large result sets.
@@ -329,6 +331,7 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
     pid   = pivot.get("id", "?")
     pname = pivot.get("name", pid)
     host  = pivot.get("host_sheet", "")
+    page_filters = pivot.get("filters", [])
 
     row_fields = [r["field"] for r in pivot.get("rows", [])
                   if r.get("type") == "field" and r.get("field") != "__VALUES__"]
@@ -411,7 +414,6 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
                 pass
 
     # Page filter bar
-    page_filters = pivot.get("filters", [])
     pf_parts = []
     for f in page_filters:
         fname    = f.get("field","")
@@ -449,7 +451,7 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
         f'<div class="pivot-meta">' 
         f'<span class="meta-tag">{_ht.escape(pid)}</span>' 
         f'<span class="meta-tag">{_ht.escape(host)}</span>' 
-        f'<span class="meta-tag">{len(data_rows):,} rows</span>' 
+        f'<span class="meta-tag">{len(data_records):,} rows</span>' 
         f'<span class="meta-tag">{len(val_cols)} measures</span>' 
         f'</div>{filter_bar}</div>'
     )
@@ -485,7 +487,7 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
         f'<button class="ctrl-btn" onclick="collapseAll(\'{table_id}\')">⊟ Collapse All</button>' 
         f'<input class="search-box" placeholder="🔍 Search…" ' 
         f'oninput="searchTable(this,\'{table_id}\')"/>' 
-        f'<span class="row-count">{len(data_rows):,} leaf rows</span></div>'
+        f'<span class="row-count">{len(data_records):,} leaf rows</span></div>'
     )
 
     # pf_fields for data-pf_ attrs
