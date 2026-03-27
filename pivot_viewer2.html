@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pivot JSON Viewer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#181c27;--surface2:#1e2333;--border:#2a2f42;
+  --accent:#4f9cf9;--green:#3dd68c;--amber:#f5a623;--red:#f06060;
+  --muted:#5a637a;--text:#c8d0e0;--dim:#7a849a;
+  --mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh}
+#topbar{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:8px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+#topbar h1{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
+#file-btn{cursor:pointer;background:var(--accent);color:#fff;border:none;border-radius:4px;
+  padding:5px 14px;font-family:var(--sans);font-size:12px;font-weight:600}
+#file-btn:hover{opacity:.85}
+#file-input{display:none}
+#file-label{font-family:var(--mono);font-size:11px;color:var(--muted);flex:1}
+.stat{font-family:var(--mono);font-size:11px;color:var(--muted)}
+#tabs{display:none;flex-wrap:wrap;border-bottom:1px solid var(--border);
+  background:var(--surface);padding:0 16px}
+.tab{background:none;border:none;cursor:pointer;color:var(--dim);font-family:var(--sans);
+  font-size:12px;font-weight:500;padding:8px 14px;border-bottom:2px solid transparent;white-space:nowrap}
+.tab:hover{color:var(--text)}.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+#cards{padding:18px 20px}
+.card{display:none}.card.on{display:block}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.chip{background:var(--surface2);border:1px solid var(--border);border-radius:4px;
+  padding:3px 10px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.chip b{color:var(--text)}.chip.src{border-color:var(--accent);color:#7cb9ff}
+.chip.calc{border-color:var(--amber);color:var(--amber)}
+.zones{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.zone{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.zlabel{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--muted);
+  letter-spacing:.08em;text-transform:uppercase;min-width:50px}
+.pill{border-radius:3px;padding:2px 9px;font-family:var(--mono);font-size:11px;
+  font-weight:600;border:1px solid;white-space:nowrap}
+.pr{background:#1a2535;border-color:#2e4a75;color:#7cb9ff}
+.pc{background:#1f2d1a;border-color:#3a5c2e;color:#6dce7a}
+.pv{background:#2a2015;border-color:#5c4520;color:#f5c06a}
+.pf{background:#2a1f20;border-color:#5c302e;color:#f07070}
+.px{background:#2a1f35;border-color:#5c3a75;color:#c07cf5}
+.pdim{font-size:10px;opacity:.6;font-weight:400}
+.slabel{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin:16px 0 6px}
+.tw{overflow-x:auto;border:1px solid var(--border);border-radius:5px;background:var(--surface)}
+table.pt{border-collapse:collapse;font-family:var(--mono);font-size:12px}
+table.pt th{background:#232840;border:1px solid var(--border);padding:5px 12px;white-space:nowrap;font-weight:700}
+table.pt th.corner{background:transparent;border-color:transparent}
+table.pt th.chdr{color:#6dce7a;text-align:center}
+table.pt th.vhdr{color:#f5c06a;text-align:center;font-size:11px}
+table.pt th.rhdr{color:#7cb9ff;text-align:left}
+table.pt td{border:1px solid var(--border);padding:4px 12px;white-space:nowrap}
+table.pt tbody tr:nth-child(even) td{background:#191d2b}
+table.pt tbody tr:nth-child(odd) td{background:#161921}
+table.pt tbody tr:hover td{background:#1e2540}
+table.pt td.rl{color:#7cb9ff;font-weight:600;background:#1e2333 !important;border-right:2px solid #2e4a75}
+table.pt td.vc{text-align:center;color:var(--dim);font-size:11px}
+table.pt td.cc{text-align:center;color:#c07cf5;font-size:11px}
+table.pt tfoot td{background:#1e2a1e !important;font-weight:700;border-top:2px solid #3a5c3e}
+table.pt tfoot td.rl{color:var(--green)}
+table.pt tfoot td.vc{color:var(--green)}
+.mbox{background:var(--surface2);border:1px solid var(--border);border-radius:4px;
+  padding:8px 12px;margin-top:10px;display:inline-block;vertical-align:top}
+.mbox .mhdr{font-family:var(--mono);font-size:10px;font-weight:700;color:#6dce7a;letter-spacing:.06em;margin-bottom:5px}
+.mbox .mpills{display:flex;flex-wrap:wrap;gap:3px}
+.ctog{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin-top:16px}
+.ctog .ar{font-size:9px;color:var(--muted);transition:transform .15s;display:inline-block}
+.ctog.open .ar{transform:rotate(90deg)}
+.cbody{display:none;margin-top:8px}.cbody.open{display:block}
+table.ft{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+table.ft th{background:var(--surface2);border:1px solid var(--border);padding:4px 10px;
+  text-align:left;color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+table.ft td{border:1px solid var(--border);padding:3px 10px;color:var(--dim);vertical-align:top}
+table.ft tr:hover td{background:var(--surface2)}
+.badge{display:inline-block;border-radius:3px;padding:1px 7px;font-size:10px;font-weight:700;margin:1px 2px}
+.daxbox{background:#0d1020;border:1px solid var(--border);border-radius:4px;padding:10px 14px;
+  font-family:var(--mono);font-size:11px;color:#c07cf5;white-space:pre;overflow-x:auto}
+#empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:60vh;gap:12px;color:var(--muted)}
+#empty .icon{font-size:44px;opacity:.25}
+#empty p{font-family:var(--mono);font-size:12px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#353b52;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <h1>◈ PIVOT VIEWER</h1>
+  <button id="file-btn" onclick="document.getElementById('file-input').click()">Load JSON</button>
+  <input type="file" id="file-input" accept=".json">
+  <span id="file-label">no file loaded</span>
+  <span class="stat" id="stat-info"></span>
+</div>
+<div id="tabs"></div>
+<div id="cards">
+  <div id="empty">
+    <div class="icon">⊞</div>
+    <p>Load a <code style="color:var(--accent)">_pivots.json</code> to inspect</p>
+  </div>
+</div>
+
+<script>
+document.getElementById('file-input').addEventListener('change', function(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  document.getElementById('file-label').textContent = f.name;
+  var r = new FileReader();
+  r.onload = function(ev) {
+    var data;
+    try { data = JSON.parse(ev.target.result); }
+    catch(err) { alert('Bad JSON: ' + err.message); return; }
+    render(data);
+  };
+  r.readAsText(f);
+});
+
+function render(data) {
+  var meta   = data.meta   || {};
+  var pivots = data.pivots || [];
+
+  document.getElementById('stat-info').textContent =
+    (meta.pivot_count || pivots.length) + ' pivot(s) · ' + (meta.source_file || '');
+  document.getElementById('empty').style.display = 'none';
+
+  var tabsEl  = document.getElementById('tabs');
+  var cardsEl = document.getElementById('cards');
+  tabsEl.innerHTML = '';
+  cardsEl.innerHTML = '';
+  tabsEl.style.display = 'flex';
+
+  pivots.forEach(function(piv, i) {
+    var tab = document.createElement('button');
+    tab.className = 'tab' + (i === 0 ? ' on' : '');
+    tab.textContent = piv.name || piv.id || ('Pivot ' + (i+1));
+    tab.setAttribute('data-i', i);
+    tab.onclick = function() {
+      var idx = parseInt(this.getAttribute('data-i'));
+      document.querySelectorAll('.tab').forEach(function(t,j){t.classList.toggle('on',j===idx);});
+      document.querySelectorAll('.card').forEach(function(c,j){c.classList.toggle('on',j===idx);});
+    };
+    tabsEl.appendChild(tab);
+
+    var card = document.createElement('div');
+    card.className = 'card' + (i === 0 ? ' on' : '');
+    card.innerHTML = buildCard(piv);
+    cardsEl.appendChild(card);
+  });
+}
+
+function buildCard(p) {
+  var src   = p.cache_source || {};
+  var rows  = (p.rows    || []).filter(function(f){return f.field !== '__VALUES__';});
+  var cols  = (p.columns || []).filter(function(f){return f.field !== '__VALUES__';});
+  var vals  = p.values  || [];
+  var filts = p.filters || [];
+  var calcs = p.calculated_fields || [];
+  // Strip distinct_values from fields to avoid touching that data at all
+  var fields = {};
+  Object.keys(p.fields || {}).forEach(function(k) {
+    var fi = p.fields[k];
+    fields[k] = {
+      placement:         fi.placement,
+      data_type:         fi.data_type,
+      num_format:        fi.num_format,
+      is_calculated:     fi.is_calculated,
+      formula:           fi.formula,
+      grouping:          fi.grouping,
+      hidden_items:      fi.hidden_items
+      // distinct_values intentionally omitted
+    };
+  });
+
+  var out = [];
+
+  // chips
+  out.push('<div class="chips">');
+  out.push('<span class="chip"><b>' + x(p.id||'') + '</b></span>');
+  out.push('<span class="chip">Sheet: <b>' + x(p.host_sheet||'?') + '</b></span>');
+  if (p.location && p.location.ref)
+    out.push('<span class="chip">Range: <b>' + x(p.location.ref) + '</b></span>');
+  if (src.sheet)
+    out.push('<span class="chip src">Source: <b>' + x(src.sheet) + '</b> ! <b>' + x(src.range||'?') + '</b></span>');
+  if (calcs.length)
+    out.push('<span class="chip calc">⚡ ' + calcs.length + ' calc field' + (calcs.length>1?'s':'') + '</span>');
+  out.push('</div>');
+
+  // zones
+  out.push('<div class="zones">');
+  if (rows.length)
+    out.push(zone('ROWS', rows.map(function(f){return '<span class="pill pr">'+x(f.field)+'</span>';}).join('')));
+  if (cols.length)
+    out.push(zone('COLS', cols.map(function(f){
+      var mm = f.members || [];
+      var preview = mm.length ? ' <span class="pdim">('+mm.slice(0,6).map(x).join(', ')+(mm.length>6?'…':'')+')</span>' : '';
+      return '<span class="pill pc">'+x(f.field)+preview+'</span>';
+    }).join('')));
+  if (vals.length)
+    out.push(zone('VALUES', vals.map(function(v){
+      return '<span class="pill pv">'+x(v.display_name||v.source_field)+' <span class="pdim">'+x(v.aggregation_label)+'</span></span>';
+    }).join('')));
+  if (filts.length)
+    out.push(zone('FILTERS', filts.map(function(f){
+      return '<span class="pill pf">'+x(f.field)+(f.show_all?'':' = '+x(f.selected_item))+'</span>';
+    }).join('')));
+  if (calcs.length)
+    out.push(zone('CALC', calcs.map(function(c){return '<span class="pill px">⚡ '+x(c.name)+'</span>';}).join('')));
+  out.push('</div>');
+
+  // structural pivot table
+  out.push(buildTable(rows, cols, vals, calcs, p.row_grand_total, p.col_grand_total));
+
+  // member boxes (just display — members array is small, already pre-extracted)
+  var mboxes = cols.filter(function(c){return c.members && c.members.length;});
+  if (mboxes.length) {
+    out.push('<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">');
+    mboxes.forEach(function(c) {
+      out.push('<div class="mbox"><div class="mhdr">'+x(c.field)+' MEMBERS ('+c.members.length+')</div><div class="mpills">');
+      c.members.forEach(function(m){out.push('<span class="pill pc" style="font-size:10px;padding:1px 7px">'+x(m)+'</span>');});
+      out.push('</div></div>');
+    });
+    out.push('</div>');
+  }
+
+  // calc fields
+  if (calcs.length) {
+    var cbody = calcs.map(function(c){
+      return '<div style="margin-bottom:10px"><div style="font-family:var(--mono);font-size:12px;font-weight:700;color:#c07cf5;margin-bottom:4px">⚡ '+x(c.name)+'</div>'
+           + '<div class="daxbox" style="color:#c07cf5">'+x(c.formula||'')+'</div></div>';
+    }).join('');
+    out.push(collapsible('⚡ Calculated Fields', cbody, true));
+  }
+
+  out.push(collapsible('◈ All Fields', buildFieldsTable(fields), false));
+  if (p.dax) out.push(collapsible('{ } DAX', '<div class="daxbox">'+x(p.dax)+'</div>', false));
+
+  return out.join('');
+}
+
+function buildTable(rows, cols, vals, calcs, rowGT, colGT) {
+  var calcNames = {};
+  calcs.forEach(function(c){calcNames[c.name] = true;});
+
+  var rCount  = rows.length || 1;
+  var colField = cols[0];
+  var members  = colField ? (colField.members || []) : [];
+  var MAXM     = 12;
+  var dispM    = members.slice(0, MAXM);
+  var trimM    = members.length > MAXM;
+
+  var out = [];
+  out.push('<div class="slabel">PIVOT STRUCTURE</div><div class="tw"><table class="pt"><thead>');
+
+  // Col group header row
+  if (colField) {
+    out.push('<tr>');
+    for (var i = 0; i < rCount; i++) out.push('<th class="corner"></th>');
+    dispM.forEach(function(m){
+      out.push('<th class="chdr" colspan="'+vals.length+'">'+x(m)+'</th>');
+    });
+    if (trimM) out.push('<th class="chdr" style="color:var(--amber)">…'+(members.length-MAXM)+' more</th>');
+    if (colGT) out.push('<th class="chdr" colspan="'+vals.length+'" style="color:var(--green)">Grand Total</th>');
+    out.push('</tr>');
+  }
+
+  // Value header row
+  out.push('<tr>');
+  rows.forEach(function(f){out.push('<th class="rhdr">'+x(f.field)+'</th>');});
+  if (!rows.length) out.push('<th class="rhdr">(rows)</th>');
+
+  var colSets = colField ? dispM.length + (trimM?1:0) + (colGT?1:0) : 1;
+  for (var s = 0; s < colSets; s++) {
+    vals.forEach(function(v) {
+      var lbl = v.display_name || v.source_field;
+      var isCalc = !!calcNames[lbl];
+      var show = (v.show_data_as && v.show_data_as !== 'normal')
+        ? ' <span style="color:var(--amber);font-size:10px">['+x(v.show_data_as)+']</span>' : '';
+      out.push('<th class="vhdr"'+(isCalc?' style="color:#c07cf5"':'')+'>'+x(lbl)+(isCalc?' ⚡':'')+show+'</th>');
+    });
+  }
+  out.push('</tr></thead>');
+
+  // Single placeholder body row
+  var totalValCols = colSets * vals.length;
+  out.push('<tbody><tr>');
+  rows.forEach(function(f){out.push('<td class="rl">'+x(f.field)+' values</td>');});
+  if (!rows.length) out.push('<td class="rl">—</td>');
+  for (var ci = 0; ci < totalValCols; ci++) {
+    var vi = vals[ci % vals.length];
+    var lbl2 = vi ? (vi.display_name||vi.source_field) : '';
+    var isc = !!calcNames[lbl2];
+    out.push('<td class="'+(isc?'cc':'vc')+'">['+x((vi&&vi.aggregation_label)||'SUM')+']</td>');
+  }
+  out.push('</tr>');
+  out.push('<tr><td colspan="999" style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:10px;padding:5px;background:var(--surface)!important">↕ data rows not shown</td></tr>');
+  out.push('</tbody>');
+
+  if (rowGT) {
+    out.push('<tfoot><tr>');
+    for (var ri = 0; ri < rCount-1; ri++) out.push('<td class="rl"></td>');
+    out.push('<td class="rl">Grand Total</td>');
+    for (var gi = 0; gi < totalValCols; gi++) out.push('<td class="vc">[GT]</td>');
+    out.push('</tr></tfoot>');
+  }
+
+  out.push('</table></div>');
+  return out.join('');
+}
+
+function buildFieldsTable(fields) {
+  var entries = Object.keys(fields).map(function(k){return [k, fields[k]];});
+  if (!entries.length) return '<p style="color:var(--muted);padding:8px;font-family:var(--mono);font-size:11px">No fields.</p>';
+
+  var pmap = {axisRow:'pr',axisCol:'pc',axisPage:'pf',values:'pv',unused:''};
+  var h = '<div style="overflow-x:auto"><table class="ft"><thead><tr>';
+  ['Field','Placement','Type','Format','Calc','Formula','Grouping','Hidden'].forEach(function(k){h+='<th>'+k+'</th>';});
+  h += '</tr></thead><tbody>';
+
+  entries.forEach(function(e) {
+    var name = e[0], fi = e[1];
+    var pc = pmap[fi.placement] || '';
+    var grp = fi.grouping ? x(fi.grouping.group_by || fi.grouping.type || '') : '—';
+    var hid = (fi.hidden_items||[]).map(function(hi){return '<span class="pill pf" style="font-size:10px">'+x(hi)+'</span>';}).join('') || '<span style="color:var(--muted)">—</span>';
+    h += '<tr>'
+       + '<td style="color:var(--text);font-weight:600">'+x(name)+'</td>'
+       + '<td>'+(pc?'<span class="pill '+pc+'" style="font-size:10px">'+x(fi.placement)+'</span>':'<span style="color:var(--muted)">—</span>')+'</td>'
+       + '<td><span class="badge" style="background:#1a1f35;color:#5a8af5">'+x(fi.data_type||'?')+'</span></td>'
+       + '<td style="color:var(--muted);font-size:10px">'+x(fi.num_format||'—')+'</td>'
+       + '<td style="text-align:center">'+(fi.is_calculated?'<span style="color:#c07cf5">⚡</span>':'<span style="color:var(--muted)">—</span>')+'</td>'
+       + '<td style="color:#c07cf5;font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis">'+x(fi.formula||'')+'</td>'
+       + '<td style="font-size:10px;color:var(--dim)">'+grp+'</td>'
+       + '<td>'+hid+'</td>'
+       + '</tr>';
+  });
+
+  return h + '</tbody></table></div>';
+}
+
+var _cid = 0;
+function collapsible(title, body, open) {
+  var id = 'c' + (++_cid);
+  return '<div class="ctog '+(open?'open':'')+'" onclick="tog(\''+id+'\',this)">'
+       + '<span class="ar">▶</span>'
+       + '<span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">'+title+'</span>'
+       + '</div>'
+       + '<div id="'+id+'" class="cbody '+(open?'open':'')+'">'+body+'</div>';
+}
+function tog(id, el) {
+  var b = document.getElementById(id);
+  var o = b.classList.toggle('open');
+  el.classList.toggle('open', o);
+}
+function zone(label, pills) {
+  return '<div class="zone"><span class="zlabel">'+label+'</span>'+pills+'</div>';
+}
+function x(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

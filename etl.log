@@ -1,0 +1,262 @@
+2026-03-14 21:19:47,162  INFO      ============================================================
+2026-03-14 21:19:47,172  INFO      ETL started
+2026-03-14 21:19:47,180  INFO      Reading Excel: 'Dar Kale Updated Sales Analysis Jan month Close.xlsx'
+2026-03-14 21:19:47,186  INFO        sheet='Sales Data Dump'  header_row=2
+2026-03-14 21:20:03,332  INFO        Loaded 7,496 rows × 249 columns
+2026-03-14 21:20:03,413  INFO        Transform complete: 7,496 rows, 250 columns
+2026-03-14 21:20:03,420  INFO      Loading into DuckDB: 'dark_db.duckdb'  table='master_data'
+2026-03-14 21:20:12,038  INFO        Loaded 7,496 rows in 8.61s
+2026-03-14 21:20:12,184  INFO        Metadata written to _etl_meta
+2026-03-14 21:20:12,191  INFO        Columns loaded:
+2026-03-14 21:20:12,216  INFO          Month                                    datetime64[us]
+2026-03-14 21:20:12,223  INFO          storeCode                                int64
+2026-03-14 21:20:12,230  INFO          storeName                                str
+2026-03-14 21:20:12,237  INFO          mdr                                      str
+2026-03-14 21:20:12,243  INFO          crDscr                                   str
+2026-03-14 21:20:12,250  INFO          channel                                  str
+2026-03-14 21:20:12,256  INFO          subChannel                               str
+2026-03-14 21:20:12,263  INFO          block                                    str
+2026-03-14 21:20:12,271  INFO          route                                    str
+2026-03-14 21:20:12,278  INFO          routeDescription                         str
+2026-03-14 21:20:12,285  INFO          areaType                                 str
+2026-03-14 21:20:12,292  INFO          ownerName                                str
+2026-03-14 21:20:12,301  INFO          ownerMobile                              str
+2026-03-14 21:20:12,308  INFO          assistantName                            str
+2026-03-14 21:20:12,315  INFO          assistantMobile                          float64
+2026-03-14 21:20:12,322  INFO          storePhoto                               str
+2026-03-14 21:20:12,329  INFO          tin                                      float64
+2026-03-14 21:20:12,337  INFO          operation                                str
+2026-03-14 21:20:12,343  INFO          region                                   str
+2026-03-14 21:20:12,352  INFO          mdrDscrVisits                            int64
+2026-03-14 21:20:12,358  INFO          avgVisitFrequency                        float64
+2026-03-14 21:20:12,365  INFO          avgOrderFrequency                        float64
+2026-03-14 21:20:12,377  INFO          avgSalesFrequency                        float64
+2026-03-14 21:20:12,383  INFO          lastOrderDate                            float64
+2026-03-14 21:20:12,390  INFO          daysSinceLastOrder                       float64
+2026-03-14 21:20:12,396  INFO          lastVisitDate                            float64
+2026-03-14 21:20:12,403  INFO          daysSinceLastVisit                       float64
+2026-03-14 21:20:12,410  INFO          lastDeliveryDate                         float64
+2026-03-14 21:20:12,416  INFO          daysSinceLastDelivery                    float64
+2026-03-14 21:20:12,422  INFO          avgOrderLines                            float64
+2026-03-14 21:20:12,429  INFO          avgOrderDropSize                         float64
+2026-03-14 21:20:12,436  INFO          rgbOrderQty                              int64
+2026-03-14 21:20:12,443  INFO          petOrderQty                              int64
+2026-03-14 21:20:12,450  INFO          totalOrderQty                            int64
+2026-03-14 21:20:12,456  INFO          rgbDeliveredQty                          int64
+2026-03-14 21:20:12,462  INFO          petDeliveredQty                          int64
+2026-03-14 21:20:12,469  INFO          totalDeliveredQty                        int64
+2026-03-14 21:20:12,476  INFO          ytdRgbDeliveredQty                       int64
+2026-03-14 21:20:12,483  INFO          ytdPetDeliveredQty                       int64
+2026-03-14 21:20:12,490  INFO          totalYtdDeliveredQty                     int64
+2026-03-14 21:20:12,497  INFO          deliveryCount                            int64
+2026-03-14 21:20:12,505  INFO          avgDeliveryDropSize                      float64
+2026-03-14 21:20:12,512  INFO          6MonthSaleND                             int64
+2026-03-14 21:20:12,518  INFO          6MonthVisitND                            int64
+2026-03-14 21:20:12,525  INFO          5MonthSaleND                             int64
+2026-03-14 21:20:12,532  INFO          5MonthVisitND                            int64
+2026-03-14 21:20:12,540  INFO          4MonthSaleND                             int64
+2026-03-14 21:20:12,547  INFO          4MonthVisitND                            int64
+2026-03-14 21:20:12,553  INFO          3MonthSaleND                             int64
+2026-03-14 21:20:12,560  INFO          3MonthVisitND                            int64
+2026-03-14 21:20:12,569  INFO          2MonthSaleND                             int64
+2026-03-14 21:20:12,575  INFO          2MonthVisitND                            int64
+2026-03-14 21:20:12,582  INFO          1MonthSaleND                             int64
+2026-03-14 21:20:12,590  INFO          1MonthVisitND                            int64
+2026-03-14 21:20:12,596  INFO          currentMonthSaleND                       int64
+2026-03-14 21:20:12,604  INFO          currentMonthVisitND                      int64
+2026-03-14 21:20:12,611  INFO          FGBL201_soldCases                        float64
+2026-03-14 21:20:12,617  INFO          FGBL201_lastSale                         float64
+2026-03-14 21:20:12,624  INFO          FGPS236_soldCases                        float64
+2026-03-14 21:20:12,630  INFO          FGPS236_lastSale                         float64
+2026-03-14 21:20:12,637  INFO          FGPS239_soldCases                        float64
+2026-03-14 21:20:12,644  INFO          FGPS239_lastSale                         float64
+2026-03-14 21:20:12,652  INFO          FGCS204_soldCases                        float64
+2026-03-14 21:20:12,658  INFO          FGCS204_lastSale                         float64
+2026-03-14 21:20:12,664  INFO          FGPS241_soldCases                        float64
+2026-03-14 21:20:12,671  INFO          FGPS241_lastSale                         float64
+2026-03-14 21:20:12,678  INFO          FGSK201_soldCases                        float64
+2026-03-14 21:20:12,685  INFO          FGSK201_lastSale                         float64
+2026-03-14 21:20:12,691  INFO          FGCS208_soldCases                        float64
+2026-03-14 21:20:12,698  INFO          FGCS208_lastSale                         float64
+2026-03-14 21:20:12,707  INFO          FGSU201_soldCases                        float64
+2026-03-14 21:20:12,714  INFO          FGSU201_lastSale                         float64
+2026-03-14 21:20:12,721  INFO          FGSU203_soldCases                        float64
+2026-03-14 21:20:12,731  INFO          FGSU203_lastSale                         float64
+2026-03-14 21:20:12,746  INFO          FGSU204_soldCases                        float64
+2026-03-14 21:20:12,753  INFO          FGSU204_lastSale                         float64
+2026-03-14 21:20:12,760  INFO          FGGA201_soldCases                        float64
+2026-03-14 21:20:12,768  INFO          FGGA201_lastSale                         float64
+2026-03-14 21:20:12,775  INFO          FGGA204_soldCases                        float64
+2026-03-14 21:20:12,782  INFO          FGGA204_lastSale                         float64
+2026-03-14 21:20:12,789  INFO          FGSU209_soldCases                        float64
+2026-03-14 21:20:12,796  INFO          FGSU209_lastSale                         float64
+2026-03-14 21:20:12,804  INFO          FGSU210_soldCases                        float64
+2026-03-14 21:20:12,811  INFO          FGSU210_lastSale                         float64
+2026-03-14 21:20:12,818  INFO          FGMD201_soldCases                        float64
+2026-03-14 21:20:12,825  INFO          FGMD201_lastSale                         float64
+2026-03-14 21:20:12,831  INFO          FGMD204_soldCases                        float64
+2026-03-14 21:20:12,838  INFO          FGMD204_lastSale                         float64
+2026-03-14 21:20:12,845  INFO          FGMD207_soldCases                        float64
+2026-03-14 21:20:12,852  INFO          FGMD207_lastSale                         float64
+2026-03-14 21:20:12,859  INFO          FGMD209_soldCases                        float64
+2026-03-14 21:20:12,866  INFO          FGMD209_lastSale                         float64
+2026-03-14 21:20:12,874  INFO          FGMD211_soldCases                        float64
+2026-03-14 21:20:12,881  INFO          FGMD211_lastSale                         float64
+2026-03-14 21:20:12,888  INFO          FGMD212_soldCases                        float64
+2026-03-14 21:20:12,895  INFO          FGMD212_lastSale                         float64
+2026-03-14 21:20:12,904  INFO          FGSU224_soldCases                        float64
+2026-03-14 21:20:12,910  INFO          FGSU224_lastSale                         float64
+2026-03-14 21:20:12,917  INFO          FGSU225_soldCases                        float64
+2026-03-14 21:20:12,923  INFO          FGSU225_lastSale                         float64
+2026-03-14 21:20:12,930  INFO          FGMF201_soldCases                        float64
+2026-03-14 21:20:12,938  INFO          FGMF201_lastSale                         float64
+2026-03-14 21:20:12,945  INFO          FGTN201_soldCases                        float64
+2026-03-14 21:20:12,951  INFO          FGTN201_lastSale                         float64
+2026-03-14 21:20:12,959  INFO          FGTN204_soldCases                        float64
+2026-03-14 21:20:12,965  INFO          FGTN204_lastSale                         float64
+2026-03-14 21:20:12,974  INFO          FGMF206_soldCases                        float64
+2026-03-14 21:20:12,990  INFO          FGMF206_lastSale                         float64
+2026-03-14 21:20:12,997  INFO          FGMF207_soldCases                        float64
+2026-03-14 21:20:13,005  INFO          FGMF207_lastSale                         float64
+2026-03-14 21:20:13,013  INFO          FGMF209_soldCases                        float64
+2026-03-14 21:20:13,019  INFO          FGMF209_lastSale                         float64
+2026-03-14 21:20:13,026  INFO          FGMF210_soldCases                        float64
+2026-03-14 21:20:13,033  INFO          FGMF210_lastSale                         float64
+2026-03-14 21:20:13,039  INFO          FGMO201_soldCases                        float64
+2026-03-14 21:20:13,046  INFO          FGMO201_lastSale                         float64
+2026-03-14 21:20:13,053  INFO          FGMO204_soldCases                        float64
+2026-03-14 21:20:13,059  INFO          FGMO204_lastSale                         float64
+2026-03-14 21:20:13,068  INFO          FGSU213_soldCases                        float64
+2026-03-14 21:20:13,075  INFO          FGSU213_lastSale                         float64
+2026-03-14 21:20:13,081  INFO          FGMO207_soldCases                        float64
+2026-03-14 21:20:13,088  INFO          FGMO207_lastSale                         float64
+2026-03-14 21:20:13,094  INFO          FGSK202_soldCases                        float64
+2026-03-14 21:20:13,106  INFO          FGSK202_lastSale                         float64
+2026-03-14 21:20:13,113  INFO          FGMO208_soldCases                        float64
+2026-03-14 21:20:13,120  INFO          FGMO208_lastSale                         float64
+2026-03-14 21:20:13,126  INFO          FGMO210_soldCases                        float64
+2026-03-14 21:20:13,134  INFO          FGMO210_lastSale                         float64
+2026-03-14 21:20:13,141  INFO          FGCS202_soldCases                        float64
+2026-03-14 21:20:13,147  INFO          FGCS202_lastSale                         float64
+2026-03-14 21:20:13,154  INFO          FGMO212_soldCases                        float64
+2026-03-14 21:20:13,160  INFO          FGMO212_lastSale                         float64
+2026-03-14 21:20:13,167  INFO          FGMD216_soldCases                        float64
+2026-03-14 21:20:13,175  INFO          FGMD216_lastSale                         float64
+2026-03-14 21:20:13,182  INFO          FGMO213_soldCases                        float64
+2026-03-14 21:20:13,189  INFO          FGMO213_lastSale                         float64
+2026-03-14 21:20:13,195  INFO          FGMF214_soldCases                        float64
+2026-03-14 21:20:13,203  INFO          FGMF214_lastSale                         float64
+2026-03-14 21:20:13,211  INFO          FGMF215_soldCases                        float64
+2026-03-14 21:20:13,218  INFO          FGMF215_lastSale                         float64
+2026-03-14 21:20:13,225  INFO          FGMO215_soldCases                        float64
+2026-03-14 21:20:13,232  INFO          FGMO215_lastSale                         float64
+2026-03-14 21:20:13,240  INFO          FGMO220_soldCases                        float64
+2026-03-14 21:20:13,247  INFO          FGMO220_lastSale                         float64
+2026-03-14 21:20:13,254  INFO          FGPS244_soldCases                        float64
+2026-03-14 21:20:13,261  INFO          FGPS244_lastSale                         float64
+2026-03-14 21:20:13,270  INFO          FGMO218_soldCases                        float64
+2026-03-14 21:20:13,278  INFO          FGMO218_lastSale                         float64
+2026-03-14 21:20:13,285  INFO          FGCO2_soldCases                          float64
+2026-03-14 21:20:13,292  INFO          FGCO2_lastSale                           float64
+2026-03-14 21:20:13,299  INFO          FGMP201_soldCases                        float64
+2026-03-14 21:20:13,307  INFO          FGMP201_lastSale                         float64
+2026-03-14 21:20:13,315  INFO          FGCP001_soldCases                        float64
+2026-03-14 21:20:13,324  INFO          FGCP001_lastSale                         float64
+2026-03-14 21:20:13,331  INFO          FGCP002_soldCases                        float64
+2026-03-14 21:20:13,338  INFO          FGCP002_lastSale                         float64
+2026-03-14 21:20:13,345  INFO          FGSU228_soldCases                        float64
+2026-03-14 21:20:13,352  INFO          FGSU228_lastSale                         float64
+2026-03-14 21:20:13,359  INFO          FGSKM201_soldCases                       float64
+2026-03-14 21:20:13,366  INFO          FGSKM201_lastSale                        float64
+2026-03-14 21:20:13,374  INFO          FGSKM202_soldCases                       float64
+2026-03-14 21:20:13,381  INFO          FGSKM202_lastSale                        float64
+2026-03-14 21:20:13,388  INFO          FGSFCB201_soldCases                      float64
+2026-03-14 21:20:13,395  INFO          FGSFCB201_lastSale                       float64
+2026-03-14 21:20:13,401  INFO          FGSFMA201_soldCases                      float64
+2026-03-14 21:20:13,408  INFO          FGSFMA201_lastSale                       float64
+2026-03-14 21:20:13,414  INFO          FGSFMPA201_soldCases                     float64
+2026-03-14 21:20:13,421  INFO          FGSFMPA201_lastSale                      float64
+2026-03-14 21:20:13,428  INFO          FGSKZ201_soldCases                       float64
+2026-03-14 21:20:13,435  INFO          FGSKZ201_lastSale                        float64
+2026-03-14 21:20:13,441  INFO          FGPS242_soldCases                        float64
+2026-03-14 21:20:13,448  INFO          FGPS242_lastSale                         float64
+2026-03-14 21:20:13,455  INFO          FGST201_soldCases                        float64
+2026-03-14 21:20:13,461  INFO          FGST201_lastSale                         float64
+2026-03-14 21:20:13,470  INFO          FGSFMPA202_soldCases                     float64
+2026-03-14 21:20:13,477  INFO          FGSFMPA202_lastSale                      float64
+2026-03-14 21:20:13,484  INFO          FGSFCB202_soldCases                      float64
+2026-03-14 21:20:13,491  INFO          FGSFCB202_lastSale                       float64
+2026-03-14 21:20:13,497  INFO          FGSFMA202_soldCases                      float64
+2026-03-14 21:20:13,504  INFO          FGSFMA202_lastSale                       float64
+2026-03-14 21:20:13,511  INFO          FGSKZ202_soldCases                       float64
+2026-03-14 21:20:13,519  INFO          FGSKZ202_lastSale                        float64
+2026-03-14 21:20:13,526  INFO          FGSKB201_soldCases                       float64
+2026-03-14 21:20:13,532  INFO          FGSKB201_lastSale                        float64
+2026-03-14 21:20:13,539  INFO          FGPS201_soldCases                        float64
+2026-03-14 21:20:13,546  INFO          FGPS201_lastSale                         float64
+2026-03-14 21:20:13,552  INFO          FGSFB201_soldCases                       float64
+2026-03-14 21:20:13,559  INFO          FGSFB201_lastSale                        float64
+2026-03-14 21:20:13,567  INFO          FGPS204_soldCases                        float64
+2026-03-14 21:20:13,575  INFO          FGPS204_lastSale                         float64
+2026-03-14 21:20:13,582  INFO          FGPS205_soldCases                        float64
+2026-03-14 21:20:13,588  INFO          FGPS205_lastSale                         float64
+2026-03-14 21:20:13,595  INFO          FGPS212_soldCases                        float64
+2026-03-14 21:20:13,601  INFO          FGPS212_lastSale                         float64
+2026-03-14 21:20:13,607  INFO          FGPS213_soldCases                        float64
+2026-03-14 21:20:13,614  INFO          FGPS213_lastSale                         float64
+2026-03-14 21:20:13,620  INFO          FGPS214_soldCases                        float64
+2026-03-14 21:20:13,627  INFO          FGPS214_lastSale                         float64
+2026-03-14 21:20:13,633  INFO          FGPS218_soldCases                        float64
+2026-03-14 21:20:13,640  INFO          FGPS218_lastSale                         float64
+2026-03-14 21:20:13,646  INFO          FGPS219_soldCases                        float64
+2026-03-14 21:20:13,653  INFO          FGPS219_lastSale                         float64
+2026-03-14 21:20:13,659  INFO          FGPS220_soldCases                        float64
+2026-03-14 21:20:13,668  INFO          FGPS220_lastSale                         float64
+2026-03-14 21:20:13,675  INFO          FGPS223_soldCases                        float64
+2026-03-14 21:20:13,681  INFO          FGPS223_lastSale                         float64
+2026-03-14 21:20:13,688  INFO          FGPS224_soldCases                        float64
+2026-03-14 21:20:13,694  INFO          FGPS224_lastSale                         float64
+2026-03-14 21:20:13,701  INFO          Glass Deposits                           float64
+2026-03-14 21:20:13,707  INFO          Tier 1 SALES                             int64
+2026-03-14 21:20:13,724  INFO          Tier 2 Sales                             int64
+2026-03-14 21:20:13,734  INFO          Tier OB Sales                            int64
+2026-03-14 21:20:13,741  INFO          Total ND                                 int64
+2026-03-14 21:20:13,747  INFO          Tier 1 ND                                int64
+2026-03-14 21:20:13,754  INFO          Tier 2 ND                                int64
+2026-03-14 21:20:13,761  INFO          Tier OB ND                               int64
+2026-03-14 21:20:13,768  INFO          SK ORIGINAL CONTR.                       float64
+2026-03-14 21:20:13,775  INFO          SK BERRY CONTR.                          float64
+2026-03-14 21:20:13,781  INFO          SUPA MALT CONTR.                         float64
+2026-03-14 21:20:13,789  INFO          SUPA CSD CONTR.                          float64
+2026-03-14 21:20:13,797  INFO          SK BERRY ND                              int64
+2026-03-14 21:20:13,804  INFO          OB CONTR. %                              float64
+2026-03-14 21:20:13,811  INFO          SK Berry Days since Last Sale            object
+2026-03-14 21:20:13,817  INFO          SK Original ND                           int64
+2026-03-14 21:20:13,825  INFO          SK Original Days Since Last Sale         object
+2026-03-14 21:20:13,832  INFO          Supa Malts ND                            int64
+2026-03-14 21:20:13,838  INFO          Supa Malts Days since Last sale          str
+2026-03-14 21:20:13,845  INFO          Supa CSD ND                              int64
+2026-03-14 21:20:13,851  INFO          Supa CSD Days since last sale            object
+2026-03-14 21:20:13,858  INFO          Average Days Last SK BERRY Sale          object
+2026-03-14 21:20:13,865  INFO          Customer Active Status                   str
+2026-03-14 21:20:13,872  INFO          RGB Contr.                               float64
+2026-03-14 21:20:13,879  INFO          Status Contribution                      float64
+2026-03-14 21:20:13,886  INFO          otif_%                                   float64
+2026-03-14 21:20:13,892  INFO          Active Route Status                      str
+2026-03-14 21:20:13,900  INFO          YTD RGB                                  float64
+2026-03-14 21:20:13,907  INFO          YTD PET                                  float64
+2026-03-14 21:20:13,914  INFO          YTD TOTAL SALES                          float64
+2026-03-14 21:20:13,921  INFO          YTD TIER 1                               float64
+2026-03-14 21:20:13,928  INFO          YTD TIER 2                               float64
+2026-03-14 21:20:13,935  INFO          YTD OB                                   int64
+2026-03-14 21:20:13,942  INFO          Customer Channel                         str
+2026-03-14 21:20:13,948  INFO          OUTLET SYSTEM ACTIVE STATUS              str
+2026-03-14 21:20:13,955  INFO          Customer Registration Date               datetime64[us]
+2026-03-14 21:20:13,962  INFO          Registration Period                      str
+2026-03-14 21:20:13,969  INFO          Customer Grade Categorization            str
+2026-03-14 21:20:13,977  INFO          Unnamed: 246                             float64
+2026-03-14 21:20:13,983  INFO          Unnamed: 247                             float64
+2026-03-14 21:20:13,990  INFO          Unnamed: 248                             str
+2026-03-14 21:20:13,996  INFO          _etl_loaded_at                           str
+2026-03-14 21:20:15,851  INFO      ETL complete in 28.7s  →  dark_db.duckdb
+2026-03-14 21:20:15,858  INFO      ============================================================
