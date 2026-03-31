@@ -7719,7 +7719,7 @@
           "formula": null
         },
         {
-          "display_name": "RGB",
+          "display_name": "RGB Delivered",
           "source_field": "rgbDeliveredQty",
           "field_index": 34,
           "aggregation": "sum",
@@ -7733,7 +7733,7 @@
           "formula": null
         },
         {
-          "display_name": "PET",
+          "display_name": "PET Delivered",
           "source_field": "petDeliveredQty",
           "field_index": 35,
           "aggregation": "sum",
@@ -7747,7 +7747,7 @@
           "formula": null
         },
         {
-          "display_name": "TOTAL    SALE",
+          "display_name": "TOTAL SALE (Delivered)",
           "source_field": "totalDeliveredQty",
           "field_index": 36,
           "aggregation": "sum",
@@ -7887,7 +7887,7 @@
           "formula": null
         },
         {
-          "display_name": " RGB  ",
+          "display_name": "YTD RGB ",
           "source_field": "YTD RGB",
           "field_index": 235,
           "aggregation": "sum",
@@ -7901,7 +7901,7 @@
           "formula": null
         },
         {
-          "display_name": " PET  ",
+          "display_name": "YTD PET  ",
           "source_field": "YTD PET",
           "field_index": 236,
           "aggregation": "sum",
@@ -7915,7 +7915,7 @@
           "formula": null
         },
         {
-          "display_name": " TOTAL  ",
+          "display_name": "YTD TOTAL  ",
           "source_field": "YTD TOTAL SALES",
           "field_index": 237,
           "aggregation": "sum",
@@ -15507,7 +15507,7 @@
           "formula": null
         },
         {
-          "display_name": "TIER 1",
+          "display_name": "TIER 1 ND %",
           "source_field": "Tier 1 ND",
           "field_index": 213,
           "aggregation": "average",
@@ -15521,7 +15521,7 @@
           "formula": null
         },
         {
-          "display_name": "TIER 2",
+          "display_name": "TIER 2 ND %",
           "source_field": "Tier 2 ND",
           "field_index": 214,
           "aggregation": "average",
@@ -15535,7 +15535,7 @@
           "formula": null
         },
         {
-          "display_name": "OB",
+          "display_name": "OB ND %",
           "source_field": "Tier OB ND",
           "field_index": 215,
           "aggregation": "average",
@@ -129543,7 +129543,7 @@
           "formula": null
         },
         {
-          "display_name": "TIER 1",
+          "display_name": "TIER 1 %",
           "source_field": "Tier 1 ND",
           "field_index": 213,
           "aggregation": "average",
@@ -129557,7 +129557,7 @@
           "formula": null
         },
         {
-          "display_name": "TIER 2",
+          "display_name": "TIER 2 %",
           "source_field": "Tier 2 ND",
           "field_index": 214,
           "aggregation": "average",
@@ -129571,7 +129571,7 @@
           "formula": null
         },
         {
-          "display_name": "OB",
+          "display_name": "OB %",
           "source_field": "Tier OB ND",
           "field_index": 215,
           "aggregation": "average",

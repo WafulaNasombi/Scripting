@@ -62,7 +62,65 @@ def _db() -> duckdb.DuckDBPyConnection:
         _DB = duckdb.connect(DUCKDB_PATH, read_only=True)
         print(f"[server] DuckDB connected → {DUCKDB_PATH}")
     return _DB
-
+# __metric logic ____________________________________________________________
+METRIC_LOGIC = {
+    "outlets": {
+        "type": "distinct_count",
+        "column": "outlet_id"
+    },
+    "visits": {
+        "type": "sum"
+    },
+    "visit freq days": {
+        "type": "average"
+    },
+    "drop size": {
+        "type": "average"
+    },
+    "freq days": {
+        "type": "average"
+    },
+    "last visit days": {
+        "type": "last_days"
+    },
+    "last order days": {
+        "type": "last_days"
+    },
+    "last sale days": {
+        "type": "last_days"
+    },
+    "order frequency": {
+        "type": "ratio",
+        "numerator": "visits",
+        "denominator": "outlets"
+    },
+    "ob %": {
+        "type": "ratio",
+        "numerator": "ob",
+        "denominator": "total"
+    },
+    "nd %": {
+        "type": "ratio",
+        "numerator": "nd",
+        "denominator": "total"
+    },
+    "tier 1": {
+        "type": "sum"
+    },
+    "tier 2": {
+        "type": "sum"
+    },
+    "tier 1 nd %": {
+        "type": "ratio",
+        "numerator": "tier_1_nd",
+        "denominator": "total"
+    },
+    "tier 2 nd %": {
+        "type": "ratio",
+        "numerator": "tier_2_nd",
+        "denominator": "total"
+    }
+}
 # ── Load pivots ────────────────────────────────────────────────────────────────
 def _load_pivots() -> list[dict]:
     path = Path(PIVOTS_JSON)
@@ -150,7 +208,7 @@ def _looks_like_date(val: str) -> bool:
 
 # ── DuckDB SQL helpers ─────────────────────────────────────────────────────────
 _DUCK_AGG = {
-    "sum":"SUM","count":"COUNT","counta":"COUNT","countnums":"COUNT",
+    "sum":"SUM","count":"COUNT","distinct_count": "COUNT_DISTINCT","counta":"COUNT","countnums":"COUNT",
     "average":"AVG","mean":"AVG","min":"MIN","max":"MAX",
     "stddev":"STDDEV_SAMP","stddevp":"STDDEV_POP",
     "var":"VAR_SAMP","varp":"VAR_POP",
@@ -179,7 +237,8 @@ def _build_where(page_filters: dict) -> tuple[str, list]:
 
             if is_date and nonblank and all(_looks_like_date(v) for v in nonblank):
                 latest = sorted(nonblank)[-1]
-                clause = f"{_q(col)} <= TRY_CAST(? AS TIMESTAMP)"
+                # clause = f"{_q(col)} <= TRY_CAST(? AS TIMESTAMP)"
+                clause = f"{_q(col)} = TRY_CAST(? AS TIMESTAMP)"
                 params.append(str(latest))
                 if blanks:
                     clause = f'({clause} OR {_q(col)} IS NULL)'
@@ -263,15 +322,45 @@ class LiveBackend(DataBackend):
         fallback      = []
 
         for name, nagg in named_aggs.items():
-            fn = nagg.aggfunc
-            if callable(fn):
-                fallback.append(name)
-                continue
+          fn = nagg.aggfunc
+
+          if callable(fn):
+            fallback.append(name)
+            continue
+
+          metric = name.lower().strip()
+          logic = METRIC_LOGIC.get(metric)
+          col = _q(nagg.column)
+
+          if logic:
+           t = logic["type"]
+
+          if t == "distinct_count":
+            sel.append(f"COUNT(DISTINCT {col}) AS {_q(name)}")
+
+          elif t == "sum":
+            sel.append(f"SUM({col}) AS {_q(name)}")
+
+          elif t == "average":
+            sel.append(f"AVG({col}) AS {_q(name)}")
+
+          elif t == "last_days":
+            sel.append(f"DATEDIFF('day', MAX({col}), CURRENT_DATE) AS {_q(name)}")
+
+          elif t == "ratio":
+            num = logic["numerator"]
+            den = logic["denominator"]
+            sel.append(
+                f"SUM({_q(num)}) * 1.0 / NULLIF(SUM({_q(den)}),0) AS {_q(name)}"
+            )
+
+          else:
             duck = _DUCK_AGG.get(str(fn).lower().replace(".", ""))
-            if not duck:
-                fallback.append(name)
-                continue
-            sel.append(f"{duck}({_q(nagg.column)}) AS {_q(name)}")
+          if not duck:
+            fallback.append(name)
+            continue
+
+        sel.append(f"{duck}({col}) AS {_q(name)}")
 
         gb  = ",".join(_q(c) for c in group_cols)
         sql = (f"SELECT {','.join(sel)} FROM {MASTER_TABLE} {where}"
@@ -343,7 +432,8 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
     fmt_map    = {}
     agg_fn_map = {}
     for vs in pivot.get("values", []):
-        dn = (vs.get("display_name") or "").strip()
+        # dn = (vs.get("display_name") or "").strip()
+        dn = (vs.get("display_name") or "")
         fmt_map[dn]    = _excel_format_to_python(vs.get("num_format"))
         agg_fn_map[dn] = (vs.get("aggregation") or "sum").lower()
 
@@ -382,22 +472,59 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
     data_records = [r for r in all_records if not is_grand(r)]
     grand_records = [r for r in all_records if is_grand(r)]
 
+
+    #_______________________________ADDED____________________________________
+    # ── SAFE AGG FUNCTIONS (ADD HERE) ─────────────────────
+    def _safe_sum(series):
+     return series.sum(min_count=1)
+
+    def _safe_mean(series):
+     return series.mean()
+
+    # ── Convert DataFrame to records ONCE ─────────────────
+    all_records = result.to_dict(orient="records")
+
     # Pre-compute subtotals for group rows — use DataFrame directly (fast)
     group_agg: dict[str, dict] = {}
     if n_dims > 0 and data_records:
         df_work = result[result[dim_cols[0]].astype(str).str.strip() != "Grand Total"].copy()
-        for col in val_cols:
+        for col in val_cols: 
             df_work[col] = _pd_local.to_numeric(df_work[col], errors="coerce")
         for depth in range(n_dims - 1):
             group_keys = dim_cols[:depth + 1]
             agg_spec   = {}
+            # added
+            outlets_vc = next((vc for vc in val_cols 
+                       if agg_fn_map.get(vc, agg_fn_map.get(vc.strip())) == "count"), None)
             for vc in val_cols:
                 if vc in calc_formulas: continue
-                fn = agg_fn_map.get(vc.strip(), "sum")
-                agg_spec[vc] = {"count":"count","average":"mean",
-                                "max":"max","min":"min"}.get(fn, "sum")
+                fn = agg_fn_map.get(vc, agg_fn_map.get(vc.strip(), "sum"))
+                if fn == "count":
+                  agg_spec[vc] = "count"
+
+                elif fn == "average":
+                   agg_spec[vc] = _safe_mean
+
+                elif fn == "sum":
+                   agg_spec[vc] = _safe_sum
+
+                elif fn == "max":
+                   agg_spec[vc] = "max"
+
+                elif fn == "min":
+                  agg_spec[vc] = "min"
+
+                else:
+                 agg_spec[vc] = _safe_sum
             try:
                 grp = df_work.groupby(group_keys, sort=False).agg(agg_spec).reset_index()
+                if outlets_vc and outlets_vc in grp.columns:
+                 for vc in val_cols:
+                  if vc in calc_formulas: continue
+                fn = agg_fn_map.get(vc, agg_fn_map.get(vc.strip(), "sum"))
+                if fn == "average":
+                 outlet_counts = grp[outlets_vc].replace(0, _np.nan)
+                 grp[vc] = grp[vc] / outlet_counts
                 for vc_dn, fml in calc_formulas.items():
                     if vc_dn in val_cols:
                         grp[vc_dn] = grp.apply(
@@ -410,6 +537,7 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
                         vc.strip(): _format_value(grow.get(vc), fmt_map.get(vc.strip()))
                         for vc in val_cols
                     }
+        
             except Exception:
                 pass
 
@@ -469,9 +597,11 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
     for i, col in enumerate(val_cols):
         ci = i + (1 if n_dims > 0 else 0)
         th_cells.write(
-            f'<th data-colname="{_ht.escape(col.strip())}" ' 
+            # f'<th data-colname="{_ht.escape(col.strip())}" ' 
+            f'<th data-colname="{_ht.escape(col)}" ' 
             f'onclick="sortTable(this,\'{table_id}\')">' 
-            f'{_ht.escape(col.strip())} ' 
+            # f'{_ht.escape(col.strip())} ' 
+            f'{_ht.escape(col)}'
             f'<button class="col-filter-btn" ' 
             f'onclick="openColFilter(this,\'{table_id}\',{ci});' 
             f'event.stopPropagation()">▾</button>' 
@@ -507,7 +637,7 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
     formatted: dict[str, list[str]] = {}
     for vcol in val_cols:
         col_series = _pd_local.to_numeric(result[vcol], errors="coerce")
-        fmt = fmt_map.get(vcol.strip())
+        fmt = fmt_map.get(vcol, fmt_map.get(vcol.strip()))
         formatted[vcol] = [_format_value(v, fmt) for v in col_series]
 
     # Build tbody using StringIO — iterate over plain dicts, not Series
@@ -595,7 +725,7 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
             buf.write('<td class="col-dim d0" style="left:0px"><strong>Grand Total</strong></td>')
         for vcol in val_cols:
             v    = rec.get(vcol)
-            fmt  = fmt_map.get(vcol.strip())
+            fmt = fmt_map.get(vcol, fmt_map.get(vcol.strip()))
             fmtd = _format_value(v, fmt)
             buf.write(f"<td><strong>{_ht.escape(fmtd)}</strong></td>")
         buf.write("</tr>")
@@ -657,6 +787,22 @@ async def pivot_api(pivot_id: str, body: dict):
             row_fields + col_fields + val_sources + filt_fields
         ))
 
+
+
+    #     hidden_filters = dict(filters)
+    #     fields_meta = pivot.get("fields", {})
+    #     for field, fdata in fields_meta.items():
+    #      hidden = fdata.get("hidden_items", [])
+    #      if not hidden:
+    #       continue
+    #   # Get all distinct values for this field
+    #      all_vals = [dv["value"] if isinstance(dv, dict) else dv 
+    #                 for dv in fdata.get("distinct_values", [])]
+    #   # Only include values that are NOT hidden
+    #      visible = [v for v in all_vals if v not in hidden]
+    #   # Only apply if field is not already being filtered by the user
+    #     if field not in hidden_filters and visible:
+    #      hidden_filters[field] = visible
         backend   = LiveBackend(filters)
         df_master = backend.load(needed_cols if needed_cols else None)
         print(f"  [load done] {time.time()-t_start:.2f}s")
