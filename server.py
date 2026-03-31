@@ -210,7 +210,7 @@ def _looks_like_date(val: str) -> bool:
 _DUCK_AGG = {
     "sum":"SUM","count":"COUNT","distinct_count": "COUNT_DISTINCT","counta":"COUNT","countnums":"COUNT",
     "average":"AVG","mean":"AVG","min":"MIN","max":"MAX",
-    "stddev":"STDDEV_SAMP","stddevp":"STDDEV_POP",
+    "std":"STDDEV_SAMP","stddev":"STDDEV_SAMP","stddevp":"STDDEV_POP",
     "var":"VAR_SAMP","varp":"VAR_POP",
 }
 
@@ -322,45 +322,48 @@ class LiveBackend(DataBackend):
         fallback      = []
 
         for name, nagg in named_aggs.items():
-          fn = nagg.aggfunc
+            fn = nagg.aggfunc
+            col = _q(nagg.column)
 
-          if callable(fn):
-            fallback.append(name)
-            continue
+            if callable(fn):
+                # Check if the callable carries a DuckDB aggregate tag
+                duck_tag = getattr(fn, '_duck_agg', None)
+                if duck_tag:
+                    sel.append(f"{duck_tag}({col}) AS {_q(name)}")
+                    continue
+                fallback.append(name)
+                continue
 
-          metric = name.lower().strip()
-          logic = METRIC_LOGIC.get(metric)
-          col = _q(nagg.column)
+            # Try METRIC_LOGIC first (normalize safe key: _ → space)
+            metric = name.lower().replace("_", " ").strip()
+            logic = METRIC_LOGIC.get(metric)
 
-          if logic:
-           t = logic["type"]
-
-          if t == "distinct_count":
-            sel.append(f"COUNT(DISTINCT {col}) AS {_q(name)}")
-
-          elif t == "sum":
-            sel.append(f"SUM({col}) AS {_q(name)}")
-
-          elif t == "average":
-            sel.append(f"AVG({col}) AS {_q(name)}")
-
-          elif t == "last_days":
-            sel.append(f"DATEDIFF('day', MAX({col}), CURRENT_DATE) AS {_q(name)}")
-
-          elif t == "ratio":
-            num = logic["numerator"]
-            den = logic["denominator"]
-            sel.append(
-                f"SUM({_q(num)}) * 1.0 / NULLIF(SUM({_q(den)}),0) AS {_q(name)}"
-            )
-
-          else:
-            duck = _DUCK_AGG.get(str(fn).lower().replace(".", ""))
-          if not duck:
-            fallback.append(name)
-            continue
-
-        sel.append(f"{duck}({col}) AS {_q(name)}")
+            if logic:
+                t = logic["type"]
+                if t == "distinct_count":
+                    real_col = _q(logic.get("column", nagg.column))
+                    sel.append(f"COUNT(DISTINCT {real_col}) AS {_q(name)}")
+                elif t == "sum":
+                    sel.append(f"SUM({col}) AS {_q(name)}")
+                elif t == "average":
+                    sel.append(f"AVG({col}) AS {_q(name)}")
+                elif t == "last_days":
+                    sel.append(f"DATEDIFF('day', MAX({col}), CURRENT_DATE) AS {_q(name)}")
+                elif t == "ratio":
+                    num = _q(logic["numerator"])
+                    den = _q(logic["denominator"])
+                    sel.append(
+                        f"SUM({num}) * 1.0 / NULLIF(SUM({den}),0) AS {_q(name)}"
+                    )
+                else:
+                    fallback.append(name)
+            else:
+                # Standard DuckDB aggregate lookup
+                duck = _DUCK_AGG.get(str(fn).lower().replace(".", ""))
+                if duck:
+                    sel.append(f"{duck}({col}) AS {_q(name)}")
+                else:
+                    fallback.append(name)
 
         gb  = ",".join(_q(c) for c in group_cols)
         sql = (f"SELECT {','.join(sel)} FROM {MASTER_TABLE} {where}"
@@ -550,23 +553,42 @@ def _fast_pivot_html(result: _pd_local.DataFrame, pivot: dict,
         dv_list  = [dv.get("value", dv) if isinstance(dv, dict) else dv
                     for dv in pivot.get("fields",{}).get(fname,{})
                        .get("distinct_values",[])]
-        pretty = []
+
+        # Build raw values (for server filtering) and pretty labels (for UI)
+        raw_vals  = []   # ISO date strings or plain values — sent to server
+        label_map = {}   # raw → human-friendly label (only for dates)
         for v in dv_list:
-            try:    pretty.append(str(_pd_local.Timestamp(v).date()))
-            except: pretty.append(str(v))
+            try:
+                ts = _pd_local.Timestamp(v)
+                raw = str(ts.date())                      # "2025-07-01"
+                label = ts.strftime("%b %Y")              # "Jul 2025"
+                raw_vals.append(raw)
+                label_map[raw] = label
+            except Exception:
+                raw_vals.append(str(v))
+
+        # Sort date fields chronologically (newest first)
+        if label_map:
+            raw_vals = sorted(set(raw_vals), reverse=True)
+
         sel_pretty = ""
         if not show_all and selected is not None:
-            try:    sel_pretty = str(_pd_local.Timestamp(selected).date())
-            except: sel_pretty = str(selected)
-        ds_key    = re.sub(r'[^A-Za-z0-9_]', '_', fname)
-        safe_vals = json.dumps(pretty).replace('"', '&quot;')
-        badge     = f" [{sel_pretty}]" if sel_pretty else ""
+            try:
+                ts = _pd_local.Timestamp(selected)
+                sel_raw = str(ts.date())
+                sel_pretty = label_map.get(sel_raw, ts.strftime("%b %Y"))
+            except Exception:
+                sel_pretty = str(selected)
+        ds_key     = re.sub(r'[^A-Za-z0-9_]', '_', fname)
+        safe_vals  = json.dumps(raw_vals).replace('"', '&quot;')
+        safe_labels = json.dumps(label_map).replace('"', '&quot;')
+        badge      = f" [{sel_pretty}]" if sel_pretty else ""
         pf_parts.append(
-            f'<span class="pf-group">' 
-            f'<button class="pf-btn" data-field="{ds_key}" ' 
-            f'onclick="openPageFilter(this,&quot;{panel_id}_tbl&quot;,' 
-            f'&quot;{ds_key}&quot;,{safe_vals})">' 
-            f'▼ {_ht.escape(fname)}</button>' 
+            f'<span class="pf-group">'
+            f'<button class="pf-btn" data-field="{ds_key}" '
+            f'onclick="openPageFilter(this,&quot;{panel_id}_tbl&quot;,'
+            f'&quot;{ds_key}&quot;,{safe_vals},{safe_labels})">'
+            f'▼ {_ht.escape(fname)}</button>'
             f'<span class="pf-badge">{_ht.escape(badge)}</span></span>'
         )
     filter_bar = ('<div class="page-filter-bar"><span class="pf-label">Page Filters:</span>'
@@ -1058,8 +1080,10 @@ function switchTab(btn) {{
 }}
 
 // ── Override openPageFilter to call server instead of hiding rows ─────────────
-function openPageFilter(btn, tid, field, allVals) {{
+function openPageFilter(btn, tid, field, allVals, labelMap) {{
   _closeDD();
+  // labelMap: {{ rawValue: "Pretty Label" }} — optional, for date fields
+  const labels = labelMap || {{}};
 
   const BLANK = '(blank)';
   const withBlank = allVals.includes(BLANK) ? allVals : [...allVals, BLANK];
@@ -1075,7 +1099,8 @@ function openPageFilter(btn, tid, field, allVals) {{
   const counts = {{}};
   withBlank.forEach(v => counts[v] = '');
 
-  const dd = _buildDD(withBlank, counts, curSet, (dd, clr) => {{
+  // Build dropdown with pretty labels for date fields
+  const dd = _buildLabelDD(withBlank, counts, curSet, labels, (dd, clr) => {{
     if (clr) {{
       delete curFilters[field];
     }} else {{
@@ -1090,7 +1115,7 @@ function openPageFilter(btn, tid, field, allVals) {{
       }}
     }}
     // Fix #6: use data-field for reliable badge update
-    _updateBadge(field);
+    _updateBadge(field, labels);
     _closeDD();
     loadPivot(curId, curFilters);
   }});
@@ -1098,8 +1123,36 @@ function openPageFilter(btn, tid, field, allVals) {{
   _posDD(dd, btn);
 }}
 
+// Label-aware dropdown builder: shows pretty labels but stores raw values
+function _buildLabelDD(vals, counts, current, labels, applyFn) {{
+  const dd = document.createElement('div');
+  dd.className = 'col-filter-dd';
+  dd.innerHTML =
+    '<div class="cfd-head">' +
+    '<input class="cfd-search" placeholder="Search values\u2026" oninput="filterDDSearch(this)"/>' +
+    '<button class="cfd-all" onclick="selectAllDD(this,true)">All</button>' +
+    '<button class="cfd-all" onclick="selectAllDD(this,false)">None</button></div>' +
+    '<div class="cfd-list">' +
+    vals.map(v => {{
+      const chk = current.size === 0 || current.has(v);
+      const esc = v.replace(/"/g, '&quot;');
+      const display = labels[v] || v || '(blank)';
+      return '<label class="cfd-item">' +
+        '<input type="checkbox" value="' + esc + '"' + (chk ? ' checked' : '') + '>' +
+        '<span class="cfd-val">' + display + '</span>' +
+        '<span class="cfd-cnt">' + (counts[v] || '') + '</span></label>';
+    }}).join('') +
+    '</div>' +
+    '<div class="cfd-foot"><button class="cfd-apply">Apply</button>' +
+    '<button class="cfd-clear">Clear</button></div>';
+  dd.querySelector('.cfd-apply').onclick = () => applyFn(dd, false);
+  dd.querySelector('.cfd-clear').onclick = () => applyFn(dd, true);
+  return dd;
+}}
+
 // Fix #6: badge update uses data-field attribute, not onclick string matching
-function _updateBadge(field) {{
+function _updateBadge(field, labels) {{
+  const lbl = labels || {{}};
   const bar = document.querySelector('.page-filter-bar');
   if (!bar) return;
   bar.querySelectorAll('.pf-btn[data-field]').forEach(btn => {{
@@ -1107,9 +1160,13 @@ function _updateBadge(field) {{
     const badge = btn.parentElement.querySelector('.pf-badge');
     if (!badge) return;
     const v = curFilters[field];
-    badge.textContent = v
-      ? (' [' + (Array.isArray(v) ? v.length + ' selected' : v) + ']')
-      : '';
+    if (!v) {{
+      badge.textContent = '';
+    }} else if (Array.isArray(v)) {{
+      badge.textContent = ' [' + v.length + ' selected]';
+    }} else {{
+      badge.textContent = ' [' + (lbl[v] || v) + ']';
+    }}
   }});
 }}
 

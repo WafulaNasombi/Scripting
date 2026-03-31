@@ -79,6 +79,7 @@ _DUCK_AGG: dict[str, str] = {
     "max":       "MAX",
     "product":   None,        # No native DuckDB PRODUCT — falls back to pandas
     "stddev":    "STDDEV_SAMP",
+    "std":       "STDDEV_SAMP",   # pandas function name for stddev
     "stddevp":   "STDDEV_POP",
     "var":       "VAR_SAMP",
     "varp":      "VAR_POP",
@@ -212,8 +213,12 @@ class DuckDBBackend(DataBackend):
             agg_func = nagg.aggfunc
 
             # Resolve to DuckDB function name
-            if callable(agg_func):
-                # lambda / np.prod → can't push to SQL, mark for fallback
+            if callable(agg_func):                # Check if the callable carries a DuckDB aggregate tag
+                duck_tag = getattr(agg_func, '_duck_agg', None)
+                if duck_tag:
+                    expr = f"{duck_tag}({_q(src_col)}) AS {_q(out_name)}"
+                    select_parts.append(expr)
+                    continue                # lambda / np.prod → can't push to SQL, mark for fallback
                 fallback_cols.append(out_name)
                 continue
 
