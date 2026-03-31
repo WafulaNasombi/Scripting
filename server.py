@@ -210,7 +210,7 @@ def _looks_like_date(val: str) -> bool:
 _DUCK_AGG = {
     "sum":"SUM","count":"COUNT","distinct_count": "COUNT_DISTINCT","counta":"COUNT","countnums":"COUNT",
     "average":"AVG","mean":"AVG","min":"MIN","max":"MAX",
-    "stddev":"STDDEV_SAMP","stddevp":"STDDEV_POP",
+    "std":"STDDEV_SAMP","stddev":"STDDEV_SAMP","stddevp":"STDDEV_POP",
     "var":"VAR_SAMP","varp":"VAR_POP",
 }
 
@@ -322,45 +322,48 @@ class LiveBackend(DataBackend):
         fallback      = []
 
         for name, nagg in named_aggs.items():
-          fn = nagg.aggfunc
+            fn = nagg.aggfunc
+            col = _q(nagg.column)
 
-          if callable(fn):
-            fallback.append(name)
-            continue
+            if callable(fn):
+                # Check if the callable carries a DuckDB aggregate tag
+                duck_tag = getattr(fn, '_duck_agg', None)
+                if duck_tag:
+                    sel.append(f"{duck_tag}({col}) AS {_q(name)}")
+                    continue
+                fallback.append(name)
+                continue
 
-          metric = name.lower().strip()
-          logic = METRIC_LOGIC.get(metric)
-          col = _q(nagg.column)
+            # Try METRIC_LOGIC first (normalize safe key: _ → space)
+            metric = name.lower().replace("_", " ").strip()
+            logic = METRIC_LOGIC.get(metric)
 
-          if logic:
-           t = logic["type"]
-
-          if t == "distinct_count":
-            sel.append(f"COUNT(DISTINCT {col}) AS {_q(name)}")
-
-          elif t == "sum":
-            sel.append(f"SUM({col}) AS {_q(name)}")
-
-          elif t == "average":
-            sel.append(f"AVG({col}) AS {_q(name)}")
-
-          elif t == "last_days":
-            sel.append(f"DATEDIFF('day', MAX({col}), CURRENT_DATE) AS {_q(name)}")
-
-          elif t == "ratio":
-            num = logic["numerator"]
-            den = logic["denominator"]
-            sel.append(
-                f"SUM({_q(num)}) * 1.0 / NULLIF(SUM({_q(den)}),0) AS {_q(name)}"
-            )
-
-          else:
-            duck = _DUCK_AGG.get(str(fn).lower().replace(".", ""))
-          if not duck:
-            fallback.append(name)
-            continue
-
-        sel.append(f"{duck}({col}) AS {_q(name)}")
+            if logic:
+                t = logic["type"]
+                if t == "distinct_count":
+                    real_col = _q(logic.get("column", nagg.column))
+                    sel.append(f"COUNT(DISTINCT {real_col}) AS {_q(name)}")
+                elif t == "sum":
+                    sel.append(f"SUM({col}) AS {_q(name)}")
+                elif t == "average":
+                    sel.append(f"AVG({col}) AS {_q(name)}")
+                elif t == "last_days":
+                    sel.append(f"DATEDIFF('day', MAX({col}), CURRENT_DATE) AS {_q(name)}")
+                elif t == "ratio":
+                    num = _q(logic["numerator"])
+                    den = _q(logic["denominator"])
+                    sel.append(
+                        f"SUM({num}) * 1.0 / NULLIF(SUM({den}),0) AS {_q(name)}"
+                    )
+                else:
+                    fallback.append(name)
+            else:
+                # Standard DuckDB aggregate lookup
+                duck = _DUCK_AGG.get(str(fn).lower().replace(".", ""))
+                if duck:
+                    sel.append(f"{duck}({col}) AS {_q(name)}")
+                else:
+                    fallback.append(name)
 
         gb  = ",".join(_q(c) for c in group_cols)
         sql = (f"SELECT {','.join(sel)} FROM {MASTER_TABLE} {where}"
