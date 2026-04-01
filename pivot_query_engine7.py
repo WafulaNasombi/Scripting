@@ -95,6 +95,16 @@ class ExcelBackend(DataBackend):
 # All aggregation keys from the JSON schema → pandas / numpy names
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _stddevp(x):
+    """Population standard deviation (ddof=0)."""
+    return x.std(ddof=0)
+_stddevp._duck_agg = "STDDEV_POP"   # type: ignore[attr-defined]
+
+def _varp(x):
+    """Population variance (ddof=0)."""
+    return x.var(ddof=0)
+_varp._duck_agg = "VAR_POP"         # type: ignore[attr-defined]
+
 _AGG_MAP: dict[str, str | callable] = {
     "sum":       "sum",
     "count":     "count",   # COUNT non-blank
@@ -105,9 +115,9 @@ _AGG_MAP: dict[str, str | callable] = {
     "max":       "max",
     "product":   np.prod,
     "stddev":    "std",
-    "stddevp":   lambda x: x.std(ddof=0),
+    "stddevp":   _stddevp,
     "var":       "var",
-    "varp":      lambda x: x.var(ddof=0),
+    "varp":      _varp,
 }
 
 
@@ -597,7 +607,14 @@ def execute_pivot(df_master: pd.DataFrame, pivot: dict,
                 rec[display] = agg_fn(s)
             else:
                 fn = getattr(s, agg_fn, None)
-                rec[display] = fn() if fn else s.sum()
+                if fn:
+                    rec[display] = fn()
+                else:
+                    try:
+                        rec[display] = s.agg(agg_fn)
+                    except Exception:
+                        print(f"        WARNING: unknown agg '{agg_fn}' for '{display}' – skipping")
+                        rec[display] = float('nan')
         result = pd.DataFrame([rec])
 
     # ── 6. show_data_as transforms ───────────────────────────────────────────
